@@ -24,8 +24,8 @@
     display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;}
   .hills{position:absolute;left:0;right:0;bottom:0;height:40%;background:
     linear-gradient(180deg,#9fd79a,#7fb67f);border-radius:20px 20px 0 0;opacity:.9;}
-  /* ----- 곰(갑옷) ----- */
-  .bear-wrap{position:relative; width:134px; height:136px; transform:translateY(8px);}
+  /* ----- 곰(갑옷) 스프라이트(벡터풍) ----- */
+  .bear-wrap{position:absolute; left:50%; top:50%; transform:translate(-50%,-10%); width:134px; height:136px; z-index:2;}
   .bear{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
   .bear-body{position:absolute; bottom:8px; left:22px; width:90px; height:86px; background:#8d6449; border-radius:38px; box-shadow:0 6px 0 rgba(0,0,0,.06)}
   .bear-head{position:absolute; top:10px; left:17px; width:100px; height:95px; background:#a2795b; border-radius:42px; box-shadow:inset 0 -6px 0 rgba(0,0,0,.06)}
@@ -48,22 +48,22 @@
   .tappable{touch-action:manipulation; cursor:pointer}
   .tap-bounce{animation:tapBounce .25s ease}
   @keyframes tapBounce{
-    0%{transform:translateY(8px) scale(1);}
-    50%{transform:translateY(3px) scale(1.04);}
-    100%{transform:translateY(8px) scale(1);}
+    0%{transform:translate(-50%,-10%) scale(1);}
+    50%{transform:translate(-50%,-14%) scale(1.04);}
+    100%{transform:translate(-50%,-10%) scale(1);}
   }
   .spark{
     position:absolute; width:8px; height:8px; border-radius:50%;
     background:radial-gradient(circle,#fff 0%, #ffe9a8 50%, rgba(255,255,255,0) 70%);
-    animation:spark .6s ease-out forwards; pointer-events:none;
+    animation:spark .6s ease-out forwards; pointer-events:none; z-index:3;
   }
   @keyframes spark{
     0%{opacity:.95; transform:translate(0,0) scale(.6)}
     100%{opacity:0; transform:translate(var(--dx,10px),var(--dy,-18px)) scale(1.6)}
   }
-  .enemy-row{position:absolute; right:18px; top:24px; display:flex; gap:8px; transform:scale(.9)}
+  .enemy-row{position:absolute; right:18px; top:24px; display:flex; gap:8px; transform:scale(.9); z-index:1;}
   .enemy{width:54px; height:54px; border-radius:12px; background:linear-gradient(180deg,#ffd7a8,#ffb37a); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 0 rgba(0,0,0,.06)}
-  .treasure{position:absolute; left:18px; bottom:18px; width:64px; height:48px; border-radius:8px; background:linear-gradient(180deg,#f6c94d,#e3a61f); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff}
+  .treasure{position:absolute; left:18px; bottom:18px; width:64px; height:48px; border-radius:8px; background:linear-gradient(180deg,#f6c94d,#e3a61f); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; z-index:1;}
   .controls{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
   button{flex:1; padding:12px; border-radius:12px; border:0; background:var(--primary); color:#fff; font-weight:700; box-shadow:0 6px 12px rgba(0,0,0,.08); font-size:15px}
   button.secondary{background:#fff;color:var(--muted);border:1px solid #eee}
@@ -72,9 +72,7 @@
   .upgrade{flex:1;background:linear-gradient(180deg,#fff,#f7f7f7);padding:8px;border-radius:12px;text-align:center}
   .small{font-size:12px;color:var(--muted)}
   footer{margin-top:8px;text-align:center;color:var(--muted);font-size:12px}
-  @media (max-width:420px){
-    .battle-area{height:58vh}
-  }
+  @media (max-width:420px){ .battle-area{height:58vh} }
 </style>
 </head>
 <body>
@@ -88,7 +86,7 @@
   </header>
 
   <main class="main">
-    <div class="battle-area" id="stage">
+    <div class="battle-area" id="stage" aria-label="전투 무대">
       <div class="hills"></div>
 
       <div class="enemy-row" id="enemies"></div>
@@ -137,7 +135,7 @@
       </div>
     </div>
 
-    <div class="log" id="log">환영합니다, 사령관님! 곰을 눌러 “우엉~”을 들어보고, 전투→저금 루프를 체험해보세요.</div>
+    <div class="log" id="log">환영합니다! 곰을 눌러 “우엉~”을 듣고, 전투→저금 루프를 체험해보세요.</div>
   </main>
 
   <footer>데모: 전투 → 보상 → 저축 루프 + 코믹 효과음</footer>
@@ -162,25 +160,20 @@ function playWoong(){
   const g = ctx.createGain();
   o.type = 'sine';
   o.frequency.setValueAtTime(180, ctx.currentTime);
-  // 살짝 아래로 미끄러지듯
   o.frequency.exponentialRampToValueAtTime(95, ctx.currentTime + 0.35);
-  // 비브라토
   const lfo = ctx.createOscillator(); lfo.type='sine'; lfo.frequency.value=6;
   const lfoGain = ctx.createGain(); lfoGain.gain.value = 8;
   lfo.connect(lfoGain).connect(o.frequency);
-
   g.gain.setValueAtTime(0.001, ctx.currentTime);
   g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 0.02);
   g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-
   o.connect(g).connect(ctx.destination);
   o.start(); lfo.start();
   o.stop(ctx.currentTime + 0.52); lfo.stop(ctx.currentTime + 0.52);
 }
-// 타격 “퍽!”: 킥+노이즈 섞기
+// 타격 “퍽!”: 킥(저음)+짧은 노이즈
 function playThump(){
   const ctx = getCtx();
-  // 킥(저음)
   const kick = ctx.createOscillator(); kick.type = 'sine';
   const kg = ctx.createGain(); kg.gain.value = 0.0001;
   kick.frequency.setValueAtTime(180, ctx.currentTime);
@@ -189,8 +182,6 @@ function playThump(){
   kg.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
   kick.connect(kg).connect(ctx.destination);
   kick.start(); kick.stop(ctx.currentTime + 0.22);
-
-  // 짧은 노이즈(어택)
   const bufferSize = 0.08 * ctx.sampleRate;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -227,9 +218,7 @@ function render(){
   $('rate').textContent = `+${Math.round(state.interestRate*100)}% / ${state.interestIntervalSec}s`;
   $('autoBtn').textContent = state.autoFight ? '자동전투: ON' : '자동전투: OFF';
 }
-function log(msg){
-  $('log').textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-}
+function log(msg){ $('log').textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; }
 function spark(x,y){
   const s = document.createElement('div');
   s.className = 'spark';
@@ -263,16 +252,13 @@ function heroTapFx(){
   const hero = $('hero');
   hero.classList.remove('tap-bounce'); void hero.offsetWidth; // reflow
   hero.classList.add('tap-bounce');
-  // 스파크 몇 개
   const rect = hero.getBoundingClientRect();
   for(let i=0;i<4;i++){
     spark(rect.left + rect.width/2 + (Math.random()*30-15), rect.top + rect.height/2 + (Math.random()*20-10));
   }
 }
 function fight(){
-  // 타격 사운드(선타)
-  playThump();
-
+  playThump(); // 타격 사운드
   const basePower = state.atk * (1 + state.bankLv * 0.05);
   const bankInfluence = Math.sqrt(state.bank) / 50;
   const playerPower = basePower * (1 + bankInfluence);
@@ -295,7 +281,6 @@ function fight(){
       log(`패배... 지갑 -${lost}G (승률 ${(winChance*100).toFixed(0)}%)`);
     }
   }
-
   saveState(); render(); spawnEnemies(Math.max(1, Math.round(2 + Math.random()*4))); animateTreasure();
 }
 function depositAll(){
@@ -357,13 +342,13 @@ function init(){
 
   // 곰 탭: “우엉~” + 바운스 + 스파크
   const hero = $('hero');
-  const tap = (e)=>{ playWoong(); heroTapFx(); };
+  const tap = ()=>{ playWoong(); heroTapFx(); };
   hero.addEventListener('click', tap);
   hero.addEventListener('touchstart', tap, {passive:true});
 
   // iOS 오디오 정책 대비: 첫 사용자 제스처 이후 컨텍스트 재개
   window.addEventListener('pointerdown', ()=>{ if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); } }, {once:false});
-  // 가이드 메시지
+
   setTimeout(()=>log('전투로 보상 획득 → 지갑 또는 금고에 저금해 보세요. 곰을 눌러 “우엉~”도 들어보기!'),800);
 }
 init();
