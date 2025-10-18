@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-<title>저금전쟁 — 곰(갑옷)+효과음 데모</title>
+<title>저금전쟁 — 곰(갑옷)+효과음 데모 [BUILD v7]</title>
 <style>
   :root{
     --bg:#eaf7ef; --card:#fff; --accent:#f6c94d; --muted:#6a7672; --primary:#6aa84f;
@@ -11,7 +11,9 @@
     font-family: Inter, "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   }
   html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#dff0e9);}
-  .app{max-width:420px;margin:10px auto;padding:12px;box-sizing:border-box;}
+  .app{max-width:420px;margin:10px auto;padding:12px;box-sizing:border-box;position:relative}
+  /* 상단 고정 버전 배지 */
+  .badge{position:fixed; top:8px; right:8px; z-index:9999; background:#222; color:#fff; padding:6px 10px; border-radius:10px; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,.2)}
   header{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px;}
   .status{display:flex;gap:8px;align-items:center;}
   .stat{background:var(--card);padding:8px 12px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:flex-start;}
@@ -20,11 +22,11 @@
   .main{background:rgba(255,255,255,.85);border-radius:16px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);}
   .battle-area{height:320px;border-radius:12px;background:
     radial-gradient(circle at 20% 60%, #d6f0c6 0%, transparent 10%),
-    linear-gradient(180deg,#bfe8b7,#9fd79a);
+    linear-gradient(180deg,#bfe8b7,#8cca8a);
     display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;}
   .hills{position:absolute;left:0;right:0;bottom:0;height:40%;background:
     linear-gradient(180deg,#9fd79a,#7fb67f);border-radius:20px 20px 0 0;opacity:.9;}
-  /* ----- 곰(갑옷) 스프라이트(벡터풍) ----- */
+  /* ----- 곰(갑옷) ----- */
   .bear-wrap{position:absolute; left:50%; top:50%; transform:translate(-50%,-10%); width:134px; height:136px; z-index:2;}
   .bear{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
   .bear-body{position:absolute; bottom:8px; left:22px; width:90px; height:86px; background:#8d6449; border-radius:38px; box-shadow:0 6px 0 rgba(0,0,0,.06)}
@@ -76,6 +78,7 @@
 </style>
 </head>
 <body>
+<div class="badge">BUILD v7</div>
 <div class="app" role="application" aria-label="저금전쟁 곰 데모">
   <header>
     <div class="status">
@@ -142,18 +145,16 @@
 </div>
 
 <script>
-/* =======================
-   오디오(웹오디오) - 코믹 “우엉~”, 타격 “퍽!”
-   ======================= */
+/* ===== 오디오(웹오디오) ===== */
 let audioCtx;
 function getCtx(){
   if(!audioCtx){
     const Ctx = window.AudioContext || window.webkitAudioContext;
     audioCtx = new Ctx();
+    console.log('AudioContext ready [v7]');
   }
   return audioCtx;
 }
-// 코믹 “우엉~”: 저음 글라이드 + 비브라토
 function playWoong(){
   const ctx = getCtx();
   const o = ctx.createOscillator();
@@ -171,7 +172,6 @@ function playWoong(){
   o.start(); lfo.start();
   o.stop(ctx.currentTime + 0.52); lfo.stop(ctx.currentTime + 0.52);
 }
-// 타격 “퍽!”: 킥(저음)+짧은 노이즈
 function playThump(){
   const ctx = getCtx();
   const kick = ctx.createOscillator(); kick.type = 'sine';
@@ -192,22 +192,15 @@ function playThump(){
   noise.start(); noise.stop(ctx.currentTime + 0.08);
 }
 
-/* =======================
-   상태 & 유틸
-   ======================= */
-const state = {
-  wallet: 200, bank: 0, atk: 1, bankLv: 1,
-  interestRate: 0.05, interestIntervalSec: 15,
-  autoFight: false
-};
+/* ===== 상태 & 렌더 ===== */
+const state = { wallet:200, bank:0, atk:1, bankLv:1, interestRate:0.05, interestIntervalSec:15, autoFight:false };
 const $ = id => document.getElementById(id);
 function loadState(){
   const saved = localStorage.getItem('saving_war_bear_v1');
-  if(saved) { try{ Object.assign(state, JSON.parse(saved)); }catch(e){} }
+  if(saved){ try{ Object.assign(state, JSON.parse(saved)); }catch(e){} }
 }
 function saveState(){
-  const copy = {wallet:state.wallet,bank:state.bank,atk:state.atk,bankLv:state.bankLv,
-    interestRate:state.interestRate,interestIntervalSec:state.interestIntervalSec,autoFight:state.autoFight};
+  const copy = {wallet:state.wallet,bank:state.bank,atk:state.atk,bankLv:state.bankLv,interestRate:state.interestRate,interestIntervalSec:state.interestIntervalSec,autoFight:state.autoFight};
   localStorage.setItem('saving_war_bear_v1', JSON.stringify(copy));
 }
 function render(){
@@ -232,9 +225,7 @@ function spark(x,y){
   setTimeout(()=>s.remove(), 650);
 }
 
-/* =======================
-   전투/경제 로직
-   ======================= */
+/* ===== 전투/경제 ===== */
 function spawnEnemies(count=4){
   const row = $('enemies');
   row.innerHTML = '';
@@ -250,7 +241,7 @@ function animateTreasure(){
 }
 function heroTapFx(){
   const hero = $('hero');
-  hero.classList.remove('tap-bounce'); void hero.offsetWidth; // reflow
+  hero.classList.remove('tap-bounce'); void hero.offsetWidth;
   hero.classList.add('tap-bounce');
   const rect = hero.getBoundingClientRect();
   for(let i=0;i<4;i++){
@@ -258,7 +249,7 @@ function heroTapFx(){
   }
 }
 function fight(){
-  playThump(); // 타격 사운드
+  playThump();
   const basePower = state.atk * (1 + state.bankLv * 0.05);
   const bankInfluence = Math.sqrt(state.bank) / 50;
   const playerPower = basePower * (1 + bankInfluence);
@@ -267,19 +258,14 @@ function fight(){
   const winChance = playerPower / (playerPower + enemyPower);
   const didWin = Math.random() < winChance;
 
-  if(didWin){
-    state.wallet += loot;
-    log(`승리! 전리품 ${loot}G 획득. (승률 ${(winChance*100).toFixed(0)}%)`);
-  } else {
+  if(didWin){ state.wallet += loot; log(`승리! 전리품 ${loot}G 획득. (승률 ${(winChance*100).toFixed(0)}%)`); }
+  else{
     const lost = Math.round(Math.min(state.wallet, 20 + Math.random()*50));
     state.wallet -= lost;
     if(Math.random() < 0.08){
       const steal = Math.round(Math.min(state.bank, 10 + Math.random()*30));
-      state.bank -= steal;
-      log(`패배... 지갑 -${lost}G, 금고에서 -${steal}G(도난).`);
-    } else {
-      log(`패배... 지갑 -${lost}G (승률 ${(winChance*100).toFixed(0)}%)`);
-    }
+      state.bank -= steal; log(`패배... 지갑 -${lost}G, 금고 -${steal}G(도난).`);
+    } else { log(`패배... 지갑 -${lost}G (승률 ${(winChance*100).toFixed(0)}%)`); }
   }
   saveState(); render(); spawnEnemies(Math.max(1, Math.round(2 + Math.random()*4))); animateTreasure();
 }
@@ -288,50 +274,36 @@ function depositAll(){
   if(amount <= 0){ log('저금 취소'); return; }
   if(amount > state.wallet){ log('지갑 잔액 부족'); return; }
   state.wallet -= amount; state.bank += amount;
-  log(`${amount}G 저금 완료!`);
-  saveState(); render();
+  log(`${amount}G 저금 완료!`); saveState(); render();
 }
 function buyAtk(){
   const cost = 50 + state.atk * 20;
   if(state.wallet < cost){ log('지갑 잔액이 부족합니다.'); return; }
   state.wallet -= cost; state.atk += 1;
-  log(`공격력 +1 (지불 ${cost}G)`);
-  saveState(); render();
+  log(`공격력 +1 (지불 ${cost}G)`); saveState(); render();
 }
 function upgradeBank(){
   const cost = 120 + (state.bankLv-1)*80;
   if(state.wallet < cost){ log('지갑 잔액이 부족합니다.'); return; }
   state.wallet -= cost; state.bankLv += 1; state.interestRate += 0.02;
-  log(`금고 업그레이드! 레벨 ${state.bankLv}, 이자율 상승`);
-  saveState(); render();
+  log(`금고 업그레이드! 레벨 ${state.bankLv}, 이자율 상승`); saveState(); render();
 }
 let interestTimer=null, autoTimer=null;
 function startInterestTimer(){
   if(interestTimer) clearInterval(interestTimer);
   interestTimer = setInterval(()=>{
     const gain = Math.floor(state.bank * state.interestRate);
-    if(gain > 0){
-      state.bank += gain;
-      log(`이자 지급: +${gain}G`);
-      saveState(); render();
-    }
+    if(gain > 0){ state.bank += gain; log(`이자 지급: +${gain}G`); saveState(); render(); }
   }, state.interestIntervalSec*1000);
 }
 function toggleAuto(){
   state.autoFight = !state.autoFight;
-  if(state.autoFight){
-    autoTimer = setInterval(()=> fight(), 4000);
-    log('자동전투 ON');
-  } else {
-    if(autoTimer) clearInterval(autoTimer);
-    log('자동전투 OFF');
-  }
+  if(state.autoFight){ autoTimer = setInterval(()=> fight(), 4000); log('자동전투 ON'); }
+  else { if(autoTimer) clearInterval(autoTimer); log('자동전투 OFF'); }
   saveState(); render();
 }
 
-/* =======================
-   초기화 & 이벤트
-   ======================= */
+/* ===== 초기화 ===== */
 function init(){
   loadState(); render(); spawnEnemies(4); startInterestTimer();
   $('fightBtn').addEventListener('click', fight);
@@ -346,8 +318,8 @@ function init(){
   hero.addEventListener('click', tap);
   hero.addEventListener('touchstart', tap, {passive:true});
 
-  // iOS 오디오 정책 대비: 첫 사용자 제스처 이후 컨텍스트 재개
-  window.addEventListener('pointerdown', ()=>{ if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); } }, {once:false});
+  // 사용자 첫 제스처 이후 오디오 컨텍스트 보장
+  window.addEventListener('pointerdown', ()=>{ if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); } });
 
   setTimeout(()=>log('전투로 보상 획득 → 지갑 또는 금고에 저금해 보세요. 곰을 눌러 “우엉~”도 들어보기!'),800);
 }
